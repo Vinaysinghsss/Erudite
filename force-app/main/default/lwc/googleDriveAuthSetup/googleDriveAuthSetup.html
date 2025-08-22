@@ -1,0 +1,340 @@
+<!--
+  @test class        : 
+  @description       : 
+  @author            : Sudip Karmakar
+  @last modified on  : 08-11-2025
+  @last modified by  : Sudip Karmakar
+-->
+<template>
+    <div class="dashbaord-container">
+    <!-- Hidden VF Page for Session ID -->
+    <iframe 
+        src={vfPageUrl} 
+        style="display: none; width: 0; height: 0; border: none;"
+        title="Session Helper">
+    </iframe>
+    
+    <div class="setup-container">
+        <!-- Connection Status Screen -->
+        <template lwc:if={isConnectionStatus}>
+            <div class="content-wrapper">
+                <div class="step-card">
+                    <div class="step-header">
+                        <h2>
+                            <lightning-icon icon-name="utility:connected_apps" size="small"></lightning-icon>
+                            Google Drive Connection Status
+                        </h2>
+                        <p>Your Google Drive integration is active and ready to use</p>
+                    </div>
+
+                    <div class="success-banner connection-banner">
+                        <lightning-icon icon-name="utility:success" size="medium"></lightning-icon>
+                        <div>
+                            <h3>✅ Connected Successfully</h3>
+                            <p>Your tool is connected to Google Drive</p>
+                        </div>
+                    </div>
+
+                    <div class="connection-details">
+                        <div class="detail-section">
+                            <h4>Connection Details</h4>
+                            <div class="detail-grid">
+                                <template if:true={connectionStatus.authProviderName}>
+                                    <div class="detail-item">
+                                        <span class="detail-label">Auth Provider:</span>
+                                        <span class="detail-value">{connectionStatus.authProviderName}</span>
+                                    </div>
+                                </template>
+                                
+                                <template if:true={connectionStatus.connectedUserName}>
+                                    <div class="detail-item">
+                                        <span class="detail-label">Connected User:</span>
+                                        <span class="detail-value">{connectionStatus.connectedUserName}</span>
+                                    </div>
+                                </template>
+                                
+                                <template if:true={connectionStatus.connectedUserEmail}>
+                                    <div class="detail-item">
+                                        <span class="detail-label">Email:</span>
+                                        <span class="detail-value">{connectionStatus.connectedUserEmail}</span>
+                                    </div>
+                                </template>
+                                
+                                <template if:true={connectionStatus.clientId}>
+                                    <div class="detail-item">
+                                        <span class="detail-label">Client ID:</span>
+                                        <span class="detail-value client-id">{connectionStatus.clientId}</span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="quick-actions">
+                            <div class="action-card">
+                                <lightning-icon icon-name="utility:cloud" size="small"></lightning-icon>
+                                <h5>Google Cloud Console</h5>
+                                <p>Manage your OAuth credentials and settings</p>
+                                <lightning-button
+                                    variant="neutral"
+                                    label="Open Google Cloud"
+                                    onclick={handleOpenGoogleCloud}
+                                    icon-name="utility:new_window"
+                                    class="action-button">
+                                </lightning-button>
+                            </div>
+
+                            <div class="action-card">
+                                <lightning-icon icon-name="utility:setup" size="small"></lightning-icon>
+                                <h5>Salesforce Setup</h5>
+                                <p>Access Named Credentials configuration</p>
+                                <lightning-button
+                                    variant="neutral"
+                                    label="Open Setup"
+                                    onclick={handleOpenSalesforceSetup}
+                                    icon-name="utility:new_window"
+                                    class="action-button">
+                                </lightning-button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-section">
+                        <div class="button-group">
+                            <lightning-button
+                                variant="destructive"
+                                label="Log Out"
+                                onclick={handleLogout}
+                                icon-name="utility:logout"
+                                disabled={isLoading}
+                                class="logout-button">
+                            </lightning-button>
+                            <template if:true={isLoading}>
+                                <lightning-spinner size="small"></lightning-spinner>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+        <template lwc:else>
+        <!-- Progress Steps -->
+        <div class="progress-section">
+            <div class="progress-bar">
+                <template for:each={stepsWithState} for:item="step">
+                    <div key={step.number} class={step.cssClass}>
+                        <div class="step-circle">
+                            <template if:true={step.completed}>
+                                <lightning-icon icon-name="utility:check" size="x-small"></lightning-icon>
+                            </template>
+                            <template if:false={step.completed}>
+                                {step.number}
+                            </template>
+                        </div>
+                        <span class="step-title">{step.title}</span>
+                        <template if:false={step.isLast}>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content-wrapper">
+            <!-- Step 1: Input Form -->
+            <template if:true={isStep1}>
+                <div class="step-card">
+                    <div class="step-header">
+                        <h2>
+                            <lightning-icon icon-name="utility:identity" size="small"></lightning-icon>
+                            Enter Your Credentials
+                        </h2>
+                        <p>Provide your Google OAuth credentials to create the auth provider</p>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="input-group">
+                            <lightning-input
+                                label="Client ID"
+                                value={clientId}
+                                data-field="clientId"
+                                onchange={handleInputChange}
+                                placeholder="Your Google OAuth Client ID"
+                                class="custom-input">
+                            </lightning-input>
+                        </div>
+                        
+                        <div class="input-group">
+                            <lightning-input
+                                label="Client Secret"
+                                type="password"
+                                value={clientSecret}
+                                data-field="clientSecret"
+                                onchange={handleInputChange}
+                                placeholder="Your Google OAuth Client Secret"
+                                class="custom-input">
+                            </lightning-input>
+                        </div>
+                    </div>
+
+                    <div class="action-section">
+                        <template if:false={vfPageReady}>
+                            <div class="warning-message">
+                                <lightning-icon icon-name="utility:warning" size="x-small"></lightning-icon>
+                                <span>Please wait for session initialization to complete</span>
+                            </div>
+                        </template>
+                        
+                        <div class="button-container">
+                            <lightning-button
+                                variant="brand"
+                                label="Generate Callback URL"
+                                onclick={handleGenerateCallback}
+                                disabled={isButtonDisabled}
+                                icon-name="utility:forward"
+                                class="primary-button">
+                            </lightning-button>
+                            <template if:true={isLoading}>
+                                <lightning-spinner size="small"></lightning-spinner>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Step 2: Google Console Configuration -->
+            <template if:true={isStep2}>
+                <div class="step-card">
+                    <div class="step-header">
+                        <h2>
+                            <lightning-icon icon-name="utility:settings" size="small"></lightning-icon>
+                            Configure Google Console
+                        </h2>
+                        <p>Add the callback URL to your Google OAuth configuration</p>
+                    </div>
+                    <div class="success-banner">
+                        <lightning-icon icon-name="utility:success" size="small"></lightning-icon>
+                        <span>Auth Provider created successfully!</span>
+                    </div>
+                    <div class="instructions-container">
+                        <div class="instructions-header">
+                            <lightning-icon icon-name="utility:info" size="small"></lightning-icon>
+                            <span>Follow these steps in Google Cloud Console:</span>
+                          
+                        </div>
+                         <p style="padding-left: 20px; padding-bottom: 10px;  color: grey;">Note: Use the same Google Cloud Console linked to the Client ID and Secret from Step 1.</p>
+                        <ol class="instruction-list">
+                            <li>Copy CallBack URL(below)</li>
+                            <li>Click on Clients</li>
+                            <li>In <strong>Authorized redirect URIs</strong>, add the callback URL below</li>
+                            <li>Click <strong>Save</strong></li>
+                        </ol>
+                    </div>
+                    
+                    <div class="url-section">
+                        <label class="url-label">Callback URL to add:</label>
+                        <div class="url-container highlight-url">
+                            <div class="url-display">
+                                <input type="text" readonly value={callbackUrl} class="url-input">
+                                <lightning-button-icon
+                                    icon-name="utility:copy"
+                                    onclick={handleCopyCallback}
+                                    title="Copy URL"
+                                    class="copy-button">
+                                </lightning-button-icon>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="action-section">
+                        <lightning-button
+                            variant="brand"
+                            label="Open Google Console"
+                            onclick={handleOpenGoogleConsole}
+                            icon-name="utility:new_window"
+                            class="primary-button">
+                        </lightning-button>
+                    </div>
+                 
+                </div>
+            </template>
+
+            <!-- Step 3: Salesforce Setup -->
+            <template if:true={isStep3}>
+                <div class="step-card">
+                    <div class="step-header">
+                        <h2>
+                            <lightning-icon icon-name="utility:setup" size="small"></lightning-icon>
+                            Complete Setup
+                        </h2>
+                        <p>Final configuration in Salesforce</p>
+                    </div>
+                    
+                    <div class="completion-banner">
+                        <lightning-icon icon-name="utility:success" size="medium"></lightning-icon>
+                        <div>
+                            <h3>🎉 Almost Done!</h3>
+                            <p>Complete the final steps in Salesforce Setup</p>
+                        </div>
+                    </div>
+                    
+                    <div class="instructions-container">
+                        <div class="instructions-header">
+                            <lightning-icon icon-name="utility:info" size="small"></lightning-icon>
+                            <span>Final steps in Salesforce:</span>
+                        </div>
+                        <ol class="instruction-list">
+                            <li>Open Salesforce Setup (button below)</li> 
+                            <li>Go to <strong>Security → Named Credentials</strong></li>
+                            <li>Click on your Named Credential for Google Drive (e.g., <strong>GoogleDrive</strong>)</li>
+                            <li>Click <strong>Edit</strong></li>
+                            <li>Set <strong>Authentication Protocol</strong> to <strong>OAuth 2.0</strong></li>
+                            <li>Select <strong>Auth. Provider:</strong> <span class="highlight-text">{name}</span></li>
+                            <li>Click <strong>Save</strong></li>
+                            <li>A Google login window will appear — select the account tied to your Client ID & Secret</li>
+                            <li>Click <strong>Continue</strong> and then <strong>Confirm</strong> to authorize</li>
+                        </ol>
+                    </div>
+
+                    <div class="summary-box">
+                        <h4>Configuration Summary:</h4>
+                        <div class="summary-item">
+                            <strong>Auth Provider Name:</strong> 
+                            <span class="summary-value">{name}</span>
+                        </div>
+                        <div class="summary-item">
+                            <strong>Callback URL:</strong> 
+                            <span class="summary-value">{callbackUrl}</span>
+                        </div>
+                    </div>
+
+                    <div class="action-section">
+                        <div class="button-group">
+                            <lightning-button
+                                variant="brand"
+                                label="Open Salesforce Setup"
+                                onclick={handleOpenSalesforceSetup}
+                                icon-name="utility:new_window"
+                                class="primary-button">
+                            </lightning-button>
+                            <lightning-button
+                                variant="success"
+                                label="Verify Connection"
+                                onclick={handleVerifyConnection}
+                                icon-name="utility:check"
+                                disabled={isVerifying}
+                                class="verify-button">
+                            </lightning-button>
+                        </div>
+                        <template if:true={isVerifying}>
+                            <div class="verification-loading">
+                                <lightning-spinner size="small"></lightning-spinner>
+                                <span>Verifying authentication...</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+        </template>
+    </div>
+    </div>
+</template>
